@@ -12,6 +12,75 @@ var moderators = ["dsvatd@mail.ru", "noreply@mail.ru"];
 
 var profileMenuIsOpen = false;
 
+//Вход через Google
+function login() {
+  var provider = new firebase.auth.GoogleAuthProvider();
+  if (screen.width > 1023) { //Если пользователь зашёл с компьютера, то входим с помощью всплывающего окна
+    firebase.auth().signInWithPopup(provider).then(function (result) {
+      console.log("Вход выполнен успешно");
+    }).catch(function (error) {
+      var errorCode = error.code;
+      var errorMessage = error.message;
+      var email = error.email;
+      var credential = error.credential;
+
+      //Ловим ошибку и записываем её в базу данных, чтобы потом её исправить
+      errRef.push().set({
+        code: errorCode,
+        message: errorMessage,
+        mail: email,
+        credential: credential,
+        errorCreatedAt: `${getTimeByTimestamp(Date.now())}`,
+        type: "SignInWithPopup",
+      });
+    });
+  } else { //Если пользователь зашёл с телефона или планшета, то входим с помощью редиректа на accounts.google.com
+    firebase.auth().signInWithRedirect(provider);
+    firebase.auth().getRedirectResult().then(function (result) {
+      console.log("Вход выполнен успешно");
+    }).catch(function (error) {
+      var errorCode = error.code;
+      var errorMessage = error.message;
+      var email = error.email;
+      var credential = error.credential;
+
+      //Ловим ошибку и записываем её в базу данных, чтобы потом её исправить
+      errRef.push().set({
+        code: errorCode,
+        message: errorMessage,
+        mail: email,
+        credential: credential,
+        errorCreatedAt: `${getTimeByTimestamp(Date.now())}`,
+        type: "SignInWithRedirect",
+      });
+    });
+  }
+}
+
+function exit() {
+  firebase.auth().signOut();
+  window.location.reload();
+}
+
+//Получение данных пользователя
+function getUser(arg) {
+  if (userSignedIn()) {
+    if (arg == "nickname") {
+      return firebase.auth().currentUser.displayName;
+    } else if (arg == "mail") {
+      return firebase.auth().currentUser.email;
+    } else if (arg == "name") {
+      return firebase.auth().currentUser.displayName;
+    } else if (arg == "photo") {
+      return firebase.auth().currentUser.photoURL || "https://im0-tub-ru.yandex.net/i?id=6513e2393ba9bb3ff9721ef864a1df2d&n=13";
+    } else if (arg == "uid") {
+      return firebase.auth().currentUser.email;
+    }
+  } else {
+    if (arg == "photo") { return "https://im0-tub-ru.yandex.net/i?id=6513e2393ba9bb3ff9721ef864a1df2d&n=13"; } else { return 123; }
+  }
+}
+
 var close = document.getElementsByClassName("closebtn");
 var i;
 
@@ -88,6 +157,19 @@ function alertWindow(arg) {
   if (arg == "emptyInput") {
     alert("Вы не ввели сообщение!");
   }
+}
+
+//Получение времени по timestamp
+function getTimeByTimestamp(timestamp) {
+  var time = new Date(timestamp);
+  var month = time.getMonth();
+  var day = time.getDate();
+  var hour = time.getHours();
+  var min = time.getMinutes();
+  if (min < 10) {
+    min = "0" + min;
+  };
+  return `${hour}:${min}`;
 }
 
 function openProfileMenu() {

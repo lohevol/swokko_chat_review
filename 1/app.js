@@ -21,23 +21,6 @@ const profile = {
     }
   }
 }
-
-const close = document.getElementsByClassName("closebtn");
-
-// Loop through all close buttons
-close.forEach(btn => { // "новый" метод forEach для пробежки по массивам вместо цикла
-// When someone clicks on a close button
-btn.addEventListener('click', function() { // метод addEventListener тоже поновее чем .onclick и удобнее
-  // Get the parent of <span class="closebtn"> (<div class="alert">)
-  const div = this.parentElement;
-  
-  // Set the opacity of div to 0 (transparent)
-  div.style.opacity = "0"; // задай элементу в css свойство transition: 0.6s или 600ms и тогда будет все плавно
-  
-  // Hide the div after 600ms (the same amount of milliseconds it takes to fade out)
-  setTimeout(() => div.style.display = "none", 600);
-});
-});
 // const test8438 = setInterval(sendNotification, 5000);
 
 // вспомогательные функции/классы
@@ -89,9 +72,55 @@ class Randomer {
 }
 const randomer = new Randomer();
 
+// вспомогательный класс пользователя (юзера)
+class User {
+  constructor() {
+    this.id = this.email; // тут логика не очень правильная (изначально у тебя так было), потом расскажу почему
+    this.nickname = '';
+    this.email = '';
+    this.photo = '';
+    this.defaultPhoto = "https://im0-tub-ru.yandex.net/i?id=6513e2393ba9bb3ff9721ef864a1df2d&n=13";
+  }
+  signed(){
+    return !!firebase.auth().currentUser;
+  }
+  init() { // инициализация
+    if (!this.signed()) return; // если не зарегистрирован, то дальше код в методе init не будет выполняться, а просто пропустится
+    
+    const fbUser = firebase.auth().currentUser;
+    
+    this.nickname = fbUser.displayName;
+    this.email = fbUser.email;
+    this.photo = fbUser.photoURL || this.defaultPhoto;
+  }
+  authStateObserver(user){
+    if (user) {
+      profile.menu.title.user.name.textContent = user.name;
+      profile.menu.title.user.avatar.setAttribute("src", user.photo);
+
+      document.getElementById("signInWithGoggleButton").setAttribute("hidden", "true");
+      document.getElementById("exitButton").removeAttribute("hidden");
+      //document.getElementById("messageText").removeAttribute("hidden");
+      //document.getElementById("messageSendButton").removeAttribute("hidden");
+      document.getElementById("profile").removeAttribute("hidden");
+    } else {
+      profile.menu.title.user.name.textContent = "Гость";
+      profile.menu.title.user.avatar.setAttribute("src", "https://im0-tub-ru.yandex.net/i?id=6513e2393ba9bb3ff9721ef864a1df2d&n=13");
+
+      document.getElementById("signInWithGoggleButton").removeAttribute("hidden");
+      document.getElementById("exitButton").setAttribute("hidden", "true");
+      //document.getElementById("messageText").setAttribute("hidden", "true");
+      //document.getElementById("messageSendButton").setAttribute("hidden", "true");
+      document.getElementById("profile").setAttribute("hidden", "true");
+    }
+  }
+}
+const user = new User(); // потом после регистрации инициализирую юзера, и он сам заполнит свои поля никнейма, почты и т.д.
+// user.authStateObserver(); // когда страница загрузится, наблюдатель проверит в системе ли пользователь
+
 // чат
 class Chat {
-  constructor(){
+  constructor() {
     this.messages = {};
     this.moderators = [];
     this.provider = new firebase.auth.GoogleAuthProvider(); // вынес сюда, чтобы в классе провайдер был доступен везде
@@ -99,13 +128,13 @@ class Chat {
       msg: firebase.database().ref("messages"), //Сокращение обращения к базе сообщений
       err: firebase.database().ref("errors") //Сокращение обращения к базе ошибок
     }
-    this.init(); // в этом методе будет все инициализироваться
 
+    this.init(); // в этом методе будет все инициализироваться
     this.loadMessages();
   }
   //Вход через Google
   // этот метод уже нужен, потому что когда ты записывал ошибки в базу, делал это два раза, скопировав один и тот же код
-  loginError(error){
+  loginError(error) {
     const time = getTimeByTimestamp(Date.now()); // сократил
 
     //Ловим ошибку и записываем её в базу данных, чтобы потом её исправить
@@ -118,52 +147,52 @@ class Chat {
       type: "SignInWithPopup",
     });
   }
-  redirectLoginPopup(){
+  redirectLoginPopup() {
     const auth = firebase.auth();
 
     auth.signInWithRedirect(this.provider); // this.provider
     auth.getRedirectResult().then(() => { // убрал тут аргумент функции result, ведь ты его не юзал дальше
       console.log("Вход выполнен успешно");
     })
-    .catch(this.loginError); // передаю метод сразу, так короче будет (важно передать метод без скобок)
+      .catch(this.loginError); // передаю метод сразу, так короче будет (важно передать метод без скобок)
   }
-  loginPopup(){
+  loginPopup() {
     // перенос на новые строчки:
     firebase
-    .auth()
-    .signInWithPopup(this.provider) // провайдер теперь доступен через this, так как есть в классе как переменная
-    .then(() => { // стрелочная функция
-      console.log("Вход выполнен успешно");
-    })
-    .catch(this.loginError);
+      .auth()
+      .signInWithPopup(this.provider) // провайдер теперь доступен через this, так как есть в классе как переменная
+      .then(() => { // стрелочная функция
+        console.log("Вход выполнен успешно");
+      })
+      .catch(this.loginError);
   }
   // вот главный метод логина
-  login(){
-    if(screen.width > 1023) this.popup(); // зашел с компьютера
+  login() {
+    if (screen.width > 1023) this.popup(); // зашел с компьютера
     else this.redirectPopup(); // не с компьютера
-    
+
     // после регистрации инициализирую пользователя (юзера), потому что после рега, у firebase есть все данные 
     user.init();
   }
-  logout(){ // переименовал с exit, потому что более правильно подойдет logout, один "корень" - log
+  logout() { // переименовал с exit, потому что более правильно подойдет logout, один "корень" - log
     firebase.auth().signOut();
     window.location.reload();
   }
-  loadMessages(){
+  loadMessages() {
     this.refs.msg
-    .orderByChild("createdAt")
-    .limitToLast(50)
-    .on("child_added", snapshot => {
+      .orderByChild("createdAt")
+      .limitToLast(50)
+      .on("child_added", snapshot => {
 
-      messageList.innerHTML += html;
-      messageText.value = '';
-      messageList.scrollTop = messageList.scrollHeight;
+        messageList.innerHTML += html;
+        messageText.value = '';
+        messageList.scrollTop = messageList.scrollHeight;
 
-    }, error => {
-      console.error("Ошибка чтения с БД: " + error.code);
-    });
+      }, error => {
+        console.error("Ошибка чтения с БД: " + error.code);
+      });
   }
-  init(){
+  init() {
     // сообщение
     messageForm.sendButton.addEventListener('click', () => {
       const message = {
@@ -188,41 +217,19 @@ class Chat {
     });
   }
 }
-
 const chat = new Chat(); // создаю экземпляр чата
-
-// вспомогательный класс пользователя (юзера)
-class User {
-  constructor() {
-    this.id = this.email; // тут логика не очень правильная (изначально у тебя так было), потом расскажу почему
-    this.nickname = '';
-    this.email = '';
-    this.photo = '';
-    this.defaultPhoto = "https://im0-tub-ru.yandex.net/i?id=6513e2393ba9bb3ff9721ef864a1df2d&n=13";
-  }
-  signed(){
-    return firebase.auth().currentUser;
-  }
-  init() { // инициализация
-    if (!this.signed()) return; // если не зарегистрирован, то дальше код в методе init не будет выполняться, а просто пропустится
-    
-    const fbUser = firebase.auth().currentUser;
-    
-    this.nickname = fbUser.displayName;
-    this.email = fbUser.email;
-    this.photo = fbUser.photoURL || this.defaultPhoto;
-  }
-}
-const user = new User(); // потом после регистрации инициализирую юзера, и он сам заполнит свои поля никнейма, почты и т.д.
 
 class Message {
   constructor(id, text){
     this.id = id;
     this.text = text;
     this.elem = document.getElementById(`#msg-#-${this.id}`); // написал getElementById, потому что с querySelector не работал
+
+    this.send();
   }
   send(){
-    msgRef.push().set({
+    chat.refs.msg.push().set({
+      id: randomer.getRandomId(12), // кидаю рандомный id
       avatar: user.photo,
       name: user.nickname,
       mail: user.email,
@@ -236,7 +243,7 @@ class Message {
     return false;
   }
   delete(){
-    this.refs.msg.child(this.id).remove(); // удаляю из базы данных
+    chat.refs.msg.child(this.id).remove(); // удаляю из базы данных
 
     chat.loadMessages(); // загружаю все сообщения заново
   }
@@ -262,3 +269,49 @@ class Message {
     return html;
   }
 }
+
+// не переписал, чтобы показать наглядный пример, как трудно взаимодействовать с элементами в html без reactjs, vue или angular
+const profileMenuIsOpen = false;
+
+function openProfileMenu() {
+  if (!profileMenuIsOpen) {
+    profileMenuList.removeAttribute("hidden");
+    profileMenuIsOpen = true;
+    profileMenuArrow.className = "top-arrow";
+  } else {
+    profileMenuList.setAttribute("hidden", "true")
+    profileMenuIsOpen = false;
+    profileMenuArrow.className = "bottom-arrow";
+  }
+}
+
+//Уведомления
+function alertWindow(arg) {
+  if (arg == "emptyInput") {
+    alert("Вы не ввели сообщение!");
+  }
+}
+
+function sendNotification(arg1 = "Тестовый заголовок", arg2 = "Тестовое описание") {
+  var html1 = "";
+  var randomID = Math.random()
+  html1 += `<div id="alert-${randomID}" class="alertContainer">`;
+  html1 += `<span class="alertCloseButton" onclick="this.parentElement.remove()">&times;</span>`;
+  html1 += `<span class="alertTitle">${arg1}</span>`;
+  html1 += `<p class="alertDecription">${arg2}</p> </div>`;
+
+  var alerts = document.getElementById("alertsBox");
+  alerts.innerHTML += html1;
+
+  var alertContainerLast = alerts.lastChild;
+  alertContainerLast.style.animationDelay = '0s';
+  setTimeout(alertCompleteAnimation, 1000);
+}
+
+function alertCompleteAnimation() {
+  document.getElementById("alertsBox").lastChild.style.animationDelay = '999999999999s';
+}
+
+//Нужная хрень из документации по Firebase
+// не понял зачем нужна функция, поэтому в user.authStateObserver я не использовал там метод this.signed(), и повторил как у тебя
+firebase.auth().onAuthStateChanged(user.authStateObserver);
