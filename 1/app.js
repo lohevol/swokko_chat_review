@@ -243,7 +243,7 @@ class Message {
     return false;
   }
   delete(){
-    chat.refs.msg.child(this.id).remove(); // удаляю из базы данных
+    chat.refs.msg.orderByChild('id').equalTo(this.id).remove(); // удаляю из базы данных
 
     chat.loadMessages(); // загружаю все сообщения заново
   }
