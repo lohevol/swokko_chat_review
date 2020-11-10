@@ -201,7 +201,7 @@ class Chat {
       }
 
       // создаю сообщение когда нажали кнопку отправления у формы
-      this.messages[message.id] = new Message(message.id, messageText);
+      this.messages[message.id] = new Message(message.id, message.text);
     });
 
     // пробегаюсь по всем сообщениям и ставлю обработчики на клик по кнопке удаления
@@ -275,13 +275,13 @@ const profileMenuIsOpen = false;
 
 function openProfileMenu() {
   if (!profileMenuIsOpen) {
-    profileMenuList.removeAttribute("hidden");
+    profile.menu.list.removeAttribute("hidden");
     profileMenuIsOpen = true;
-    profileMenuArrow.className = "top-arrow";
+    profile.menu.arrow.className = "top-arrow";
   } else {
-    profileMenuList.setAttribute("hidden", "true")
+    profile.menu.list.setAttribute("hidden", "true")
     profileMenuIsOpen = false;
-    profileMenuArrow.className = "bottom-arrow";
+    profile.menu.arrow.className = "bottom-arrow";
   }
 }
 
@@ -293,17 +293,17 @@ function alertWindow(arg) {
 }
 
 function sendNotification(arg1 = "Тестовый заголовок", arg2 = "Тестовое описание") {
-  var html1 = "";
-  var randomID = Math.random()
+  let html1 = "";
+  const randomID = Math.random()
   html1 += `<div id="alert-${randomID}" class="alertContainer">`;
   html1 += `<span class="alertCloseButton" onclick="this.parentElement.remove()">&times;</span>`;
   html1 += `<span class="alertTitle">${arg1}</span>`;
   html1 += `<p class="alertDecription">${arg2}</p> </div>`;
 
-  var alerts = document.getElementById("alertsBox");
+  const alerts = document.getElementById("alertsBox");
   alerts.innerHTML += html1;
 
-  var alertContainerLast = alerts.lastChild;
+  const alertContainerLast = alerts.lastChild;
   alertContainerLast.style.animationDelay = '0s';
   setTimeout(alertCompleteAnimation, 1000);
 }
